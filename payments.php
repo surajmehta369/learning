@@ -516,8 +516,8 @@ body{
 
     </div>
 
-    <a href="checkout.php"
-    class="pay-btn d-flex align-items-center justify-content-center text-decoration-none">
+    <a href="checkout.php?student_id=<?php echo $row['user_id']; ?>"
+   class="pay-btn d-flex align-items-center justify-content-center text-decoration-none">
 
         <i class="fa-solid fa-credit-card me-2"></i>
         Proceed To Checkout
