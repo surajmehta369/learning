@@ -3,8 +3,7 @@
 session_name('STUDENT_SESSION');
 session_start();
 
-include("conn.php");
-
+include(__DIR__ . "/../conn.php");
 if (isset($_SESSION['user_id'])) {
 
     $user_id = intval($_SESSION['user_id']);

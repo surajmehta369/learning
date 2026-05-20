@@ -12,8 +12,33 @@ if (!isset($_SESSION['user_id'])) {
     die("Please login first");
 }
 
-$user_id = intval($_SESSION['user_id']);
+if (isset($_GET['student_id'])) {
 
+    $student_id = intval($_GET['student_id']);
+    $parent_email = $_SESSION['user_email'];
+
+    $check = $conn->prepare("
+        SELECT id 
+        FROM signup 
+        WHERE id=? 
+        AND parent_email=?
+        AND role='student'
+    ");
+
+    $check->bind_param("is", $student_id, $parent_email);
+    $check->execute();
+
+    $res = $check->get_result();
+
+    if ($res->num_rows == 0) {
+        die("Unauthorized access");
+    }
+
+    $user_id = $student_id;
+} else {
+
+    $user_id = intval($_SESSION['user_id']);
+}
 $stmt = $conn->prepare("SELECT id FROM signup WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -114,12 +139,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
 
         $order_data = [
             "intent" => "CAPTURE",
-            "purchase_units" => [[
-                "amount" => [
-                    "currency_code" => "USD",
-                    "value" => number_format($total, 2, '.', '')
+            "purchase_units" => [
+                [
+                    "amount" => [
+                        "currency_code" => "USD",
+                        "value" => number_format($total, 2, '.', '')
+                    ]
                 ]
-            ]],
+            ],
             "application_context" => [
                 "shipping_preference" => "NO_SHIPPING",
                 "user_action" => "PAY_NOW",
@@ -160,8 +187,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
             die("Invalid amount");
         }
 
-        $cleanTotal = (float)filter_var($total, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
-        $amount = (int)round($cleanTotal * 100);
+        $cleanTotal = (float) filter_var($total, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $amount = (int) round($cleanTotal * 100);
 
         $receiptId = "rcpt_" . time();
 
@@ -213,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
                     "description": "Course Payment",
                     "order_id": "<?php echo $razorpayOrderId; ?>",
 
-                    "handler": function(response) {
+                    "handler": function (response) {
 
                         var form = document.createElement("form");
 
@@ -221,10 +248,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
                         form.action = "payments/RazorPay.php";
 
                         form.innerHTML = `
-                                            <input type="hidden" name="razorpay_payment_id" value="${response.razorpay_payment_id}">
-                                            <input type="hidden" name="razorpay_order_id" value="${response.razorpay_order_id}">
-                                            <input type="hidden" name="razorpay_signature" value="${response.razorpay_signature}">
-                                        `;
+    <input type="hidden" name="razorpay_payment_id" value="${response.razorpay_payment_id}">
+    <input type="hidden" name="razorpay_order_id" value="${response.razorpay_order_id}">
+    <input type="hidden" name="razorpay_signature" value="${response.razorpay_signature}">
+<input type="hidden" name="user_id" value="<?php echo $user_id; ?>">`;
                         document.body.appendChild(form);
                         form.submit();
                     },
@@ -236,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
 
                 var rzp = new Razorpay(options);
 
-                window.onload = function() {
+                window.onload = function () {
                     rzp.open();
                 };
             </script>
@@ -245,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
 
         </html>
 
-<?php
+        <?php
         exit;
     } else {
         die("Invalid payment gateway");
@@ -706,14 +733,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
 
                     <div class="form-group">
                         <label>Full Name</label>
-                        <input type="text" name="name" required
-                            value="<?php echo htmlspecialchars($user_name); ?>">
+                        <input type="text" name="name" required value="<?php echo htmlspecialchars($user_name); ?>">
                     </div>
 
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="email" name="email" required
-                            value="<?php echo htmlspecialchars($user_email); ?>">
+                        <input type="email" name="email" required value="<?php echo htmlspecialchars($user_email); ?>">
                     </div>
 
                     <div class="form-group">
@@ -808,8 +833,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
 
                     <div class="course-info">
 
-                        <img src="/<?php echo htmlspecialchars($item['course_image']); ?>"
-                            class="course-img"
+                        <img src="/<?php echo htmlspecialchars($item['course_image']); ?>" class="course-img"
                             onerror="this.src='https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';">
 
                         <div>
@@ -884,7 +908,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_gateway'])) {
             });
         });
 
-        document.getElementById("checkoutForm").addEventListener("submit", function(e) {
+        document.getElementById("checkoutForm").addEventListener("submit", function (e) {
 
             const gateway = document.querySelector('input[name="payment_gateway"]:checked');
 
